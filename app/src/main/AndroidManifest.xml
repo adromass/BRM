@@ -12,6 +12,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BRM">
         <activity
+            android:name=".Restaurant_Details"
+            android:exported="false"
+            android:theme="@style/Theme.BRM" />
+        <activity
+            android:name=".Restaurant_List"
+            android:exported="false" />
+        <activity
+            android:name=".Search"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
