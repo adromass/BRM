@@ -19,6 +19,11 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, Search::class.java)
             startActivity(intent)
         }
+        val btnViewList = findViewById<Button>(R.id.btnViewList)
+        btnViewList.setOnClickListener {
+            val intent = Intent(this, Restaurant_List::class.java) // O RestaurantListActivity, según tu nombre de archivo
+            startActivity(intent)
+        }
         // -------------------------------------
     }
 }
