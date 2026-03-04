@@ -38,6 +38,12 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    composeOptions {
+        // Esta versión depende de tu versión de Kotlin.
+        // Normalmente para Kotlin 1.9.x se usa la 1.5.x
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
 }
 
 dependencies {
@@ -64,4 +70,12 @@ dependencies {
     implementation("com.google.android.material:material:1.13.0")
     implementation("com.google.android.libraries.places:places:5.1.1")
     implementation("com.github.bumptech.glide:glide:5.0.5")
+    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3") // Material Design 3
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

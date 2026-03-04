@@ -1,120 +1,239 @@
 package com.brm.app
 
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
-// --- ESTE IMPORT ES EL CLAVE PARA NAME/ADDRESS ---
-import com.google.android.libraries.places.api.model.Place.Field
-import com.google.android.libraries.places.api.net.PlacesClient
-import com.google.android.libraries.places.api.net.SearchByTextRequest
-// --- IMPORTS PARA FOTOS ---
-import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
-// Asegúrate de tener este import para tu API Key segura
-import com.brm.app.BuildConfig
+import com.google.android.libraries.places.api.net.SearchByTextRequest
+import java.util.Locale
+import androidx.compose.ui.graphics.asImageBitmap
+import android.content.Intent
+import androidx.compose.foundation.clickable
 
-class Restaurant_List : AppCompatActivity() {
+data class RestaurantData(
+    val id: String,
+    val name: String,
+    val rating: Double,
+    val userRatings: Int,
+    val priceLevel: Int,
+    val address: String,
+    val foodType: String,
+    val photoMetadata: com.google.android.libraries.places.api.model.PhotoMetadata?
+)
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: RestaurantAdapter
-    private lateinit var placesClient: PlacesClient
-
+class Restaurant_List : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_restaurant_list)
+        val ciudad = intent.getStringExtra("LOCATION_QUERY") ?: ""
+        val rangoKm = intent.getFloatExtra("SEARCH_RANGE", 5f)
+        val tipoComida = intent.getStringExtra("FOOD_TYPE") ?: "Cualquiera"
+        val nivelPrecio = intent.getIntExtra("PRICE_LEVEL", 0)
+        val ratingMinimo = intent.getFloatExtra("MIN_RATING", 0f)
+        val esCercaDeMi = intent.getBooleanExtra("NEAR_ME", false)
 
-        // 1. Inicializar API de Places de forma SEGURA
-        if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, BuildConfig.MAPS_API_KEY)
+        setContent {
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    ResultsScreen(ciudad, rangoKm, tipoComida, nivelPrecio, ratingMinimo, esCercaDeMi)
+                }
+            }
         }
-        placesClient = Places.createClient(this)
+    }
+}
 
-        // 2. Configurar RecyclerView
-        recyclerView = findViewById(R.id.rvRestaurants)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResultsScreen(ciudad: String, rango: Float, comida: String, precio: Int, minRating: Float, gps: Boolean) {
+    var restaurantes by remember { mutableStateOf<List<RestaurantData>>(emptyList()) }
+    var cargando by remember { mutableStateOf(true) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-        // 3. Obtener la consulta de búsqueda
-        val query = intent.getStringExtra("LOCATION_QUERY")
-        if (query != null) {
-            searchRestaurantsByText(query)
+    LaunchedEffect(Unit) {
+        val placesClient = Places.createClient(context)
+        val term = if (comida == "Cualquiera") "restaurantes" else "restaurantes de $comida"
+        val query = if (gps) "$term cerca de mí" else "$term en $ciudad"
+
+        // Agregamos PHOTO_METADATA, TYPES y FORMATTED_ADDRESS
+        val fields = listOf(
+            Place.Field.ID,
+            Place.Field.DISPLAY_NAME,
+            Place.Field.RATING,
+            Place.Field.USER_RATING_COUNT,
+            Place.Field.PRICE_LEVEL,
+            Place.Field.FORMATTED_ADDRESS,
+            Place.Field.TYPES,
+            Place.Field.PHOTO_METADATAS
+        )
+
+        val requestBuilder = SearchByTextRequest.builder(query, fields).setMaxResultCount(15)
+        if (precio > 0) requestBuilder.setPriceLevels(listOf(precio))
+
+        placesClient.searchByText(requestBuilder.build())
+            .addOnSuccessListener { response ->
+                restaurantes = response.places
+                    .filter { (it.rating ?: 0.0).toFloat() >= minRating }
+                    .sortedByDescending { it.rating ?: 0.0 }
+                    .map {
+                        RestaurantData(
+                            id = it.id ?: "",
+                            name = it.displayName ?: "Desconocido",
+                            rating = it.rating ?: 0.0,
+                            userRatings = it.userRatingCount ?: 0,
+                            priceLevel = it.priceLevel ?: 0,
+                            address = it.formattedAddress ?: "",
+                            // Tomamos el primer tipo de comida que no sea "restaurant"
+                            foodType = it.placeTypes?.firstOrNull { t -> 
+                                t != "restaurant" && t != "food" && t != "point_of_interest" 
+                            }?.replace("_", " ")?.lowercase(Locale.getDefault())?.replaceFirstChar { char -> char.uppercase() } ?: "Restaurante",
+                            photoMetadata = it.photoMetadatas?.firstOrNull()
+                        )
+                    }
+                cargando = false
+            }
+            .addOnFailureListener { cargando = false }
+    }
+
+    Scaffold(topBar = { TopAppBar(title = { Text("Descubre") }) }) { padding ->
+        if (cargando) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(padding))
         } else {
-            Toast.makeText(this, "No se encontró ubicación", Toast.LENGTH_SHORT).show()
+            LazyColumn(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(restaurantes) { res -> RestaurantCard(res) }
+            }
+        }
+    }
+}
+
+@Composable
+fun RestaurantCard(res: RestaurantData) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val placesClient = remember { Places.createClient(context) }
+
+    var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var falloCarga by remember { mutableStateOf(false) }
+
+    LaunchedEffect(res.photoMetadata) {
+        if (res.photoMetadata != null) {
+            val photoRequest = FetchPhotoRequest.builder(res.photoMetadata)
+                .setMaxWidth(500)
+                .setMaxHeight(300)
+                .build()
+
+            placesClient.fetchPhoto(photoRequest)
+                .addOnSuccessListener { response ->
+                    imageBitmap = response.bitmap.asImageBitmap()
+                }
+                .addOnFailureListener { falloCarga = true }
+        } else {
+            falloCarga = true
         }
     }
 
-    private fun searchRestaurantsByText(query: String) {
-        // 4. Definir qué campos queremos obtener (incluyendo metadatos de foto)
-        val placeFields = listOf(
-            Field.ID,
-            Field.DISPLAY_NAME,
-            Field.FORMATTED_ADDRESS,
-            Field.RATING,
-            Field.PHOTO_METADATAS // --- IMPORTANTE PARA FOTOS ---
-        )
-
-        // 5. Crear la solicitud de búsqueda por texto
-        val searchByTextRequest = SearchByTextRequest.builder("restaurantes en $query", placeFields)
-            .setMaxResultCount(10)
-            .build()
-
-        // 6. Ejecutar la búsqueda
-        placesClient.searchByText(searchByTextRequest)
-            .addOnSuccessListener { response ->
-                val restaurantList = mutableListOf<Restaurant>()
-
-                for (place in response.places) {
-                    val restaurant = Restaurant(
-                        id = place.id ?: "",
-                        name = place.displayName ?: "Sin nombre",
-                        imageUrl = null,
-                        address = place.formattedAddress ?: "Sin dirección",
-                        rating = place.rating?.toFloat() ?: 0f
-                        // bitmap inicial es null
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                val intent = Intent(context, Restaurant_Details::class.java).apply {
+                    putExtra("RESTAURANT_ID", res.id)
+                }
+                context.startActivity(intent)
+            }, // Coma necesaria aquí para separar el modifier de los otros parámetros
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column {
+            // 1. ÁREA DE IMAGEN
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(Color.LightGray)
+            ) {
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap!!,
+                        contentDescription = "Imagen de ${res.name}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-                    restaurantList.add(restaurant)
+                } else if (falloCarga) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Imagen no disponible", style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+            }
 
-                    // --- OBTENER FOTO SI EXISTE ---
-                    val photoMetadata = place.photoMetadatas?.firstOrNull()
-                    if (photoMetadata != null) {
-                        fetchRestaurantPhoto(photoMetadata, restaurant)
+            // 2. ÁREA DE TEXTO
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = res.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (res.priceLevel > 0) {
+                        Text(
+                            text = "$".repeat(res.priceLevel),
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
 
-                // 7. Actualizar el adaptador (inicialmente sin fotos)
-                adapter = RestaurantAdapter(restaurantList)
-                recyclerView.adapter = adapter
-            }
-            .addOnFailureListener { exception ->
-                Log.e("PlacesAPI", "Error en búsqueda: ${exception.message}")
-                Toast.makeText(this, "Error buscando restaurantes", Toast.LENGTH_SHORT).show()
-            }
-    }
+                Text(
+                    text = res.foodType,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
 
-    // --- NUEVA FUNCIÓN PARA OBTENER LA FOTO ---
-    private fun fetchRestaurantPhoto(photoMetadata: PhotoMetadata, restaurant: Restaurant) {
-        val fetchPhotoRequest = FetchPhotoRequest.builder(photoMetadata)
-            .setMaxWidth(500) // Redimensionar para ahorrar memoria
-            .setMaxHeight(300)
-            .build()
-
-        placesClient.fetchPhoto(fetchPhotoRequest)
-            .addOnSuccessListener { fetchPhotoResponse ->
-                val bitmap = fetchPhotoResponse.bitmap
-                // --- AQUÍ TIENES EL BITMAP DE LA FOTO ---
-
-                // --- CONEXIÓN CON EL ADAPTADOR ---
-                runOnUiThread { // Asegurar que sea en el hilo principal
-                    adapter.updateRestaurantPhoto(restaurant.id, bitmap)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB300),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(text = " ${res.rating} ", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "(${res.userRatings} reseñas)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
                 }
-                Log.d("PlacesAPI", "Foto cargada para: ${restaurant.name}")
+
+                val ubicacionCorta = res.address.split(",").take(2).joinToString(",")
+                Text(
+                    text = "📍 $ubicacionCorta",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1
+                )
             }
-            .addOnFailureListener { exception ->
-                Log.e("PlacesAPI", "Error cargando foto: ${exception.message}")
-            }
+        }
     }
 }
