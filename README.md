@@ -1,62 +1,55 @@
 # BRM – Buscador de Restaurantes
+### Exploración gastronómica inteligente con Material 3
 
-## Descripción del proyecto
-BRM – Buscador de Restaurantes es una aplicación móvil desarrollada para la plataforma Android cuyo objetivo es facilitar a los usuarios la búsqueda de restaurantes cercanos según su ubicación actual o mediante la consulta de una ubicación específica. La aplicación se inspira en el enfoque de plataformas como Expedia, pero enfocada exclusivamente en la exploración de establecimientos gastronómicos.
+BRM es una aplicación nativa para Android que transforma la manera en que los usuarios descubren establecimientos gastronómicos. Basada en una arquitectura moderna y reactiva, la app ofrece resultados precisos mediante geolocalización en tiempo real o búsquedas específicas en cualquier ciudad del mundo.
 
-La aplicación consume servicios de terceros mediante APIs públicas para obtener información actualizada sobre restaurantes, tales como nombre, dirección, calificación, tipo de comida, nivel de precios estimado y datos de contacto. Como valor agregado, la app permite filtrar los resultados por tipo de comida y calificación, además de ofrecer accesos directos para realizar llamadas telefónicas o iniciar conversaciones vía WhatsApp con los establecimientos disponibles.
+## Evolución del Diseño (Figma vs. Producto Final)
 
----
+El proyecto partió de una base conceptual en Figma; sin embargo, durante el desarrollo se realizó un pivot estratégico en la interfaz de usuario. 
 
-## Exposición del problema
-Actualmente, los usuarios que desean encontrar restaurantes cercanos o en una ubicación específica suelen enfrentarse a información dispersa o a aplicaciones con múltiples funciones que no están enfocadas exclusivamente en la experiencia gastronómica. Esto dificulta la toma de decisiones rápidas, especialmente cuando se busca un tipo de comida específico o se desea contactar directamente con el establecimiento.
+Se decidió evolucionar el diseño original para adoptar los estándares de Material 3 (Google Moderno), permitiendo:
+*   Mayor Funcionalidad: Integración de una fila de acciones rápidas (Llamar, Web, Compartir, Navegación) que no estaban contempladas inicialmente.
+*   Interfaz Inmersiva: Transición de un diseño estático a uno dinámico con carruseles de imágenes edge-to-edge y mapas integrados sin bordes.
+*   Coherencia Visual: Implementación de un sistema de formas con bordes redondeados de 28dp, optimizando la jerarquía visual y la facilidad de uso.
 
-La falta de una aplicación simple, enfocada y optimizada para la búsqueda de restaurantes genera una experiencia poco eficiente para el usuario. BRM busca resolver este problema ofreciendo una solución centralizada, clara y orientada a la funcionalidad.
+Nota: El diseño final prioriza la "regla de un solo vistazo", reduciendo el scroll y permitiendo al usuario tomar decisiones en segundos.
 
----
+## Funcionalidades Principales
 
-## Plataforma
-La aplicación será desarrollada exclusivamente para dispositivos Android, utilizando Android Studio como entorno de desarrollo integrado y Kotlin como lenguaje de programación principal. La app hace uso de servicios de localización del dispositivo y APIs REST para el consumo de datos de terceros.
+*   Búsqueda Geográfica Precisa: Uso de Google Places Autocomplete para centrar búsquedas mediante coordenadas exactas (LatLng).
+*   Modo "Cerca de mí": Detección instantánea de restaurantes cercanos vía GPS.
+*   Filtrado Inteligente:
+    *   Rango de distancia ajustable (5km - 20km).
+    *   Nivel de presupuesto sugerido ($-$$$$).
+    *   Más de 15 categorías gastronómicas (Desde Pizzería hasta Brunch o Comida Vegana).
+*   Ficha de Detalles Optimizada:
+    *   Carrusel visual de fotos del establecimiento.
+    *   Mapa estático interactivo mediante Google Static Maps.
+    *   Acceso directo a navegación GPS paso a paso en Google Maps.
 
----
+## Tecnologías Utilizadas
 
-## Interfaz de usuario e interfaz de administrador
+*   UI: Jetpack Compose (100% Declarativo).
+*   Lenguaje: Kotlin 2.0+.
+*   APIs: Google Places SDK, Google Maps SDK, Google Static Maps API.
+*   Imágenes: Coil (Carga asíncrona y caché).
+*   Gestión de Dependencias: Kotlin DSL (Gradle).
 
-### Interfaz de usuario
-La interfaz de usuario está diseñada para ser clara, intuitiva y funcional. La aplicación incluye:
-- Pantalla de inicio con detección de ubicación actual.
-- Búsqueda de restaurantes por ubicación ingresada por el usuario.
-- Listado de restaurantes en formato de lista con imágenes.
-- Pantalla de detalle del restaurante con información relevante y opciones de contacto.
+## Optimización del Proyecto
 
-### Interfaz de administrador
-La aplicación no cuenta con una interfaz de administrador propia, ya que la gestión y actualización de la información es responsabilidad del servicio externo utilizado como backend.
-
----
-
-## Funcionalidad
-Las principales funcionalidades de la aplicación son:
-- Detección de la ubicación actual del usuario.
-- Búsqueda de restaurantes por ubicación específica.
-- Listado de restaurantes con imágenes, nombre y calificación.
-- Filtrado por tipo de comida y calificación mínima.
-- Visualización detallada de la información del restaurante.
-- Accesos directos para llamadas telefónicas y WhatsApp.
-- Integración con aplicaciones de mapas para navegación.
-- Consumo dinámico de datos mediante APIs externas.
+Para garantizar un rendimiento óptimo, se eliminaron todos los componentes obsoletos de la arquitectura antigua:
+*   Remoción de Fragments y Navigation XML.
+*   Desactivación de ViewBinding para reducir tiempos de compilación.
+*   Código limpio y libre de comentarios redundantes, siguiendo las mejores prácticas de desarrollo Android actual.
 
 ---
 
-## Diseño (Wireframes)
+### Instalación
 
-El diseño de la aplicación se apoya en wireframes elaborados en Figma, los cuales representan la estructura general y el flujo de navegación de las pantallas principales: pantalla de inicio y búsqueda, listado de restaurantes y detalle del restaurante.
-
-Enlace a Figma: https://www.figma.com/community/file/1594910947161950850
+1. Clona este repositorio.
+2. Define tu MAPS_API_KEY en el archivo local.properties.
+3. Compila usando Android Studio Ladybug o superior.
 
 ---
 
-## Tecnologías utilizadas
-- Android Studio
-- Kotlin
-- Google Places API
-- Google Maps SDK
-- APIs REST
+Enlace original a Figma: [Ver Wireframes Iniciales](https://www.figma.com/community/file/1594910947161950850)
