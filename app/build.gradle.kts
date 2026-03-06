@@ -33,8 +33,8 @@ android {
     }
     buildFeatures {
         compose = true
-        viewBinding = true
         buildConfig = true
+        viewBinding = false
     }
 }
 
@@ -49,15 +49,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.activity)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     
     // External libraries
     implementation("com.google.android.libraries.places:places:5.1.1")
-    implementation("com.github.bumptech.glide:glide:5.0.5")
     implementation("io.coil-kt:coil-compose:2.5.0")
 
     testImplementation(libs.junit)
